@@ -1,24 +1,14 @@
-from domain.component import Component
-from domain.network_project import NetworkProject
+import pytest
+from hulp import project_met
 from domain.vlan import Vlan
 
-pc1= Component("pc", "test1",'', "192.245.245.254" )
-pc2= Component("pc", "test2", "waarom hebben we een beschrijving", "192.245.245.254")
-pc3= Component("pc", "test3", "waarom hebben we een beschrijving","192.245.245.254")
+def test_verwijderen_van_twee_vlans_laat_de_andere_twee_over():
+    project = project_met(vlans=[1, 2, 3, 4])
+    project.verwijderen_vlan(project.vlans[0]) #verwijdert VLAN 1
+    project.verwijderen_vlan(project.vlans[0]) #nu staat VLAN 2 vooraan
+    assert [vlan.nummer for vlan in project.vlans] ==[3, 4]
 
-systeem = NetworkProject("systeem van Adelaide")
-
-vlan1 = Vlan(1, "kantoor1",  "test")
-vlan2 = Vlan(2, "kantoor2",  "test2")
-vlan3 = Vlan(3, "kantoor3",  "test3")
-vlan4 = Vlan(4, "kantoor4",  "test3")
-
-systeem.toevoegen_vlan(vlan1)
-systeem.toevoegen_vlan(vlan2)
-systeem.toevoegen_vlan(vlan3)
-systeem.toevoegen_vlan(vlan4)
-
-systeem.verwijderen_vlan(vlan1)
-systeem.verwijderen_vlan(vlan2)
-for vlan in systeem.vlans:
-    print(vlan)
+def test_vlan_nummer_mag_maar_een_keer_voorkomen():
+    project = project_met(vlans = [10])
+    with pytest.raises(ValueError):
+        project.toevoegen_vlan(Vlan(10, "dubbel"))
