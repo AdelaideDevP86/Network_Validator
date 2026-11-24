@@ -1,24 +1,27 @@
-from domain.component import Component
-from domain.network_project import NetworkProject
+import pytest
 from domain.verbinding import Verbinding
+from hulp import pc, project_met
 
-pc1 = Component("pc", "test1", )
-pc2 = Component("pc", "test2", "waarom hebben we een beschrijving")
-pc3 = Component("pc", "test3", "waarom hebben we een beschrijving")
+def test_toegevoegde_verbinding_verwijderen():
+    project = project_met(pc("a"), pc("b"), pc("c"),
+                          verbindingen=[("a", "b"), ("b", "c")])
+    
+    project.verwijderen_verbinding(project.verbindingen[0])
 
-systeem = NetworkProject("systeem van Adelaide")
-
-systeem.toevoegen_component(pc1)
-systeem.toevoegen_component(pc2)
-
-systeem.toevoegen_component(pc3)
-
-verbinding = Verbinding(pc1, pc2, "UP")
-#systeem.toevoegen_verbinding(verbinding)
+    assert len(project.verbindingen) == 1
+    assert str(project.verbindingen[0]) == "b <-> c [UP]"
 
 
-systeem.verwijderen_verbinding(verbinding)
-for verbinding in systeem.verbindingen:
-    print(verbinding)
-# for verbinding in systeem.verbindingen:
-#     print(verbinding)
+def test_niet_toegevoegde_verbinding_verwijderen_geeft_fout():
+    project = project_met(pc("a"), pc("b"))
+    losse = Verbinding(project.component_zoeken("a"), project.component_zoeken("b"))
+
+    with pytest.raises(ValueError):
+        project.verwijderen_verbinding(losse)
+
+
+def test_iets_anders_dan_een_verbinding_verwijderen_geeft_typeerror():
+    project = project_met(pc("a"), pc("b"), verbindingen=[("a", "b")])
+    
+    with pytest.raises(TypeError):
+        project.verwijderen_verbinding("a <-> b")

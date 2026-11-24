@@ -1,33 +1,22 @@
-from domain.component import Component
-from domain.network_project import NetworkProject
+import pytest
 from domain.verbinding import Verbinding
+from hulp import pc
 
-pc1 = Component("pc", "test1", )
-pc2 = Component("pc", "test2", "waarom hebben we een beschrijving")
-pc3 = Component("pc", "test3", "waarom hebben we een beschrijving")
+def test_nieuwe_verbinding_is_standaard_up():
+    a, b = pc("a"), pc("b")
+    verbinding = Verbinding(a, b)
 
-systeem = NetworkProject("systeem van Adelaide")
-
-systeem.toevoegen_component(pc1)
-systeem.toevoegen_component(pc2)
-
-systeem.toevoegen_component(pc3)
-
-verbinding1 = Verbinding(pc1, pc2, "UP")
-verbinding2 = Verbinding(pc2, pc3, "DOWN")
-verbinding3 = Verbinding(pc1, pc3, "UP")
-
-#verbinding1.wijzig_status("DOWN")
-systeem.toevoegen_verbinding(verbinding1)
-systeem.toevoegen_verbinding(verbinding2)
-systeem.toevoegen_verbinding(verbinding3)
+    assert verbinding.status == "UP"
+    assert verbinding.component_a is a
+    assert verbinding.component_b is b
 
 
+def test_ongeldige_status_bij_aanmaken_geeft_fout():
+    with pytest.raises(ValueError):
+        Verbinding(pc("a"), pc("b"), "AAN")
 
 
-print(verbinding1)
+def test_tekstweergave_toont_beide_namen_en_status():
+    verbinding = Verbinding(pc("test1"), pc("test2"), "DOWN")
 
-
-
-# for verbinding in systeem.verbindingen:
-#     print(verbinding)
+    assert str(verbinding) == "test1 <-> test2 [DOWN]"

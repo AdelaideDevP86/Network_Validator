@@ -1,30 +1,35 @@
-from domain.component import Component
-from domain.network_project import NetworkProject
-from domain.verbinding import Verbinding
+import pytest
+from hulp import pc, project_met
 
-pc1 = Component("pc", "test1", )
-pc2 = Component("pc", "test2", "waarom hebben we een beschrijving")
-pc3 = Component("pc", "test3", "waarom hebben we een beschrijving")
-pc4 = Component("pc", "test4", )
+def vier_pcs():
+    """test2 is verbonden met test1 (UP), test3 (DOWN) en test4 (UP)."""
+    return project_met(pc("test1"), pc("test2"), pc("test3"), pc("test4"),
+                       verbindingen=[("test1", "test2"),
+                       ("test2", "test3", "DOWN"),
+                       ("test1", "test3"),
+                       ("test2", "test4")])
 
-systeem = NetworkProject("systeem van Adelaide")
+def test_actieve_buren_zijn_test1_en_test4():
+    project = vier_pcs()
+    buren = project.zoek_actieve_buren_component(project.component_zoeken("test2"))
+    
+    assert {buur.naam for buur in buren} == {"test1", "test4"}
 
-systeem.toevoegen_component(pc1)
-systeem.toevoegen_component(pc2)
+def test_component_zonder_verbindingen_heeft_geen_buren():
+    project = project_met(pc("a"), pc("b"))
 
-systeem.toevoegen_component(pc3)
-systeem.toevoegen_component(pc4)
+    assert project.zoek_actieve_buren_component(project.component_zoeken("a")) == []
 
-verbinding1 = Verbinding(pc1, pc2, "UP")
-verbinding2 = Verbinding(pc2, pc3, "DOWN")
-verbinding3 = Verbinding(pc1, pc3, "UP")
-verbinding4 = Verbinding(pc2, pc4, "UP")
 
-systeem.toevoegen_verbinding(verbinding1)
-systeem.toevoegen_verbinding(verbinding2)
-systeem.toevoegen_verbinding(verbinding3)
-systeem.toevoegen_verbinding(verbinding4)
+def test_buren_van_component_buiten_het_project_geeft_fout():
+    project = vier_pcs()
+    
+    with pytest.raises(ValueError):
+            project.zoek_actieve_buren_component(pc("vreemde"))
 
-buren = systeem.zoek_actieve_buren_component(pc2)
-for buur in buren:
-    print(buur.naam)
+
+def test_buren_zoeken_met_een_naam_in_plaats_van_component_geeft_typeerror():
+    project = vier_pcs()
+    
+    with pytest.raises(TypeError):
+        project.zoek_actieve_buren_component("test2")

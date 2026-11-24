@@ -1,39 +1,38 @@
-from domain.component import Component
-from domain.network_project import NetworkProject
-from domain.verbinding import Verbinding
+import pytest
+from hulp import pc, project_met
 
-pc1 = Component("pc", "test1", )
-pc2 = Component("pc", "test2", "waarom hebben we een beschrijving")
-pc3 = Component("pc", "test3", "waarom hebben we een beschrijving")
+def drie_pcs():
+    """test1-test2 UP, test2-test3 DOWN, test1-test3 UP (zoals in het oude script)."""
+    
+    return project_met(pc("test1"), pc("test2"), pc("test3"),
+                       verbindingen=[("test1", "test2"),
+("test2", "test3", "DOWN"),
+("test1", "test3")])
 
-systeem = NetworkProject("systeem van Adelaide")
+def test_scheiden_geeft_twee_actieve_en_een_inactieve_verbinding():
+    project = drie_pcs()
+    actief, inactief = project.scheid_actieve_en_inactieve_verbindingen()
 
-systeem.toevoegen_component(pc1)
-systeem.toevoegen_component(pc2)
-
-systeem.toevoegen_component(pc3)
-
-verbinding1 = Verbinding(pc1, pc2, "UP")
-verbinding2 = Verbinding(pc2, pc3, "DOWN")
-verbinding3 = Verbinding(pc1, pc3, "UP")
-
-# verbinding1.wijzig_status("DOWN")
-systeem.toevoegen_verbinding(verbinding1)
-systeem.toevoegen_verbinding(verbinding2)
-systeem.toevoegen_verbinding(verbinding3)
+    assert len(actief) == 2
+    assert len(inactief) == 1
+    assert str(inactief[0]) == "test2 <-> test3 [DOWN]"
 
 
-actief, inactief = systeem.scheid_actieve_en_inactieve_verbindingen()
+def test_status_wijzigen_naar_down_maakt_verbinding_inactief():
+    project = drie_pcs()
+    verbinding = project.verbindingen[0] # test1-test2, nu UP
+    verbinding.wijzig_status("DOWN")
+    actief, inactief = project.scheid_actieve_en_inactieve_verbindingen()
 
-print("Actieve verbindingen:")
-for verbinding in actief:
-    print(verbinding)
 
-print("Inactieve verbindingen:")
-for verbinding in inactief:
-    print(verbinding)
+    assert verbinding in inactief
+    assert len(actief) == 1
 
-#print(verbinding1)
 
-# for verbinding in systeem.verbindingen:
-#     print(verbinding)
+def test_wijzig_status_met_ongeldige_waarde_geeft_fout_en_houdt_oude_status():
+    verbinding = drie_pcs().verbindingen[0]
+    
+    with pytest.raises(ValueError):
+        verbinding.wijzig_status("AAN")
+
+    assert verbinding.status == "UP"
