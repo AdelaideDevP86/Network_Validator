@@ -1,73 +1,104 @@
-Roadmap: Network Validator
-Einddoel
-
-Een netwerkontwerp-validator: je beschrijft een netwerk in een JSON-bestand en de tool rapporteert fouten en risico's, vóórdat er iets geïmplementeerd wordt.
-
-Versie 1.0 is af als:
-
-een netwerk ingeladen kan worden uit een JSON-bestand;
-zes checks werken en heldere meldingen geven;
-de tool met één commando te draaien is;
-de README uitlegt wat het doet, met voorbeeldinvoer en -uitvoer;
-de checks echte pytest-tests hebben.
-Fase 0: Opschonen
- Roadmap vervangen door dit bestand
- PyCharm-voorbeeldcode uit main.py verwijderen
- README.md aanmaken met titel en einddoel
-
-Klaar als: iemand die de repo opent binnen 10 seconden ziet wat het project is.
-
-Fase 1: Domeinmodel repareren
- valideer_ipv4 laten werken met de ipaddress-module
- Prefix opslaan als int
- Naam valideren in de constructor van Component
- Bij toevoegen_component controleren of het VLAN bestaat
- Verbinding van een component met zichzelf weigeren
- print verwijderen uit component_zoeken
-
-Klaar als: ongeldige IP-adressen, lege namen, onbekende VLAN's en verbindingen met zichzelf niet meer geaccepteerd worden.
-
-Fase 2: Inladen uit JSON
- JSON-formaat vastleggen (VLAN's, componenten, verbindingen)
- Functie laad_project(pad) in map opslag/
- Voorbeeldbestand voorbeelden/kantoor.json met opzettelijke fouten
-
-Klaar als: een JSON-bestand een volledig NetworkProject oplevert.
-
-Fase 3: Checks
- Melding-object met ernst (FOUT of WAARSCHUWING), check en tekst
- Dubbel IP-adres (bestaat al, omzetten naar Melding)
- Component zonder verbinding (bestaat al, omzetten naar Melding)
- Netwerk- of broadcastadres gebruikt als host-IP
- Gateway buiten het subnet
- Overlappende subnetten
- Component verwijst naar onbekend VLAN
-
-Klaar als: het voorbeeldbestand alle opzettelijke fouten meldt, zonder valse meldingen.
-
-Fase 4: Opdrachtregel-tool
- main.py leest een bestandspad in met argparse
- Rapport tonen: eerst fouten, dan waarschuwingen, dan een samenvatting
-
-Klaar als: python main.py voorbeelden/kantoor.json een volledig rapport geeft.
-
-Fase 5: Afronden
- README uitwerken: installatie, gebruik, voorbeeld, lijst met checks
- Bestaande testbestanden omzetten naar echte pytest-tests
- Tests schrijven voor de checks uit fase 3
- Release-tag v1.0
-
-Klaar als: de repolink zonder uitleg naar een stagebedrijf kan.
-
-Ideeën voor na 1.0
-
-Pas oppakken als versie 1.0 af is.
-
-Grafische interface (PySide6)
-Topologie tekenen
-Single points of failure vinden (articulatiepunten en bruggen)
-PoE-budget per switch controleren
-Subnet bijna vol
-Automatisch vrij IP-adres voorstellen
-Rapport exporteren naar HTML of PDF
-Uitvalsimulatie: wat gebeurt er als deze switch uitvalt?
+# Network Validator
+ 
+Controleert een netwerkontwerp op fouten **voordat** het netwerk wordt gebouwd.
+ 
+Een netwerkbeheerder beschrijft het ontwerp (componenten, IP-configuratie, VLAN's en verbindingen) en de tool meldt
+wat er mis is: dubbele IP-adressen, een gateway buiten het subnet, overlappende subnetten, apparaten zonder actieve
+verbinding. Fouten die je op papier vindt, hoef je niet later in een serverruimte op te sporen.
+ 
+> **Status: in ontwikkeling.** Het domeinmodel en de eerste controles werken en zijn getest. Inlezen uit JSON en de
+> opdrachtregel-tool volgen. Zie [ROADMAP.md](ROADMAP.md) voor de planning naar versie 1.0.
+ 
+## Wat het nu kan
+ 
+- Een netwerkproject opbouwen met componenten, VLAN's en verbindingen (UP of DOWN).
+- Invoer valideren: IPv4-adressen (met de standaardmodule `ipaddress`), prefix (0–32) en VLAN-nummer (1–4094).
+  Ongeldige invoer wordt geweigerd met een duidelijke foutmelding.
+- Projectregels afdwingen: unieke componentnamen, geen dubbele verbindingen, een VLAN dat in gebruik is kan niet
+  worden verwijderd. Bij het verwijderen van een component verdwijnen ook zijn verbindingen.
+- Een ontwerp analyseren op dubbele IP-adressen, componenten zonder actieve verbinding en verbindingen die DOWN staan.
+## Controles
+ 
+| Regel  | Controle                                   | Status                |
+|--------|--------------------------------------------|-----------------------|
+| NV-001 | Dubbel IP-adres                            | basisversie aanwezig  |
+| NV-002 | Netwerk- of broadcastadres als host-IP     | gepland               |
+| NV-003 | Gateway buiten het subnet                  | gepland               |
+| NV-004 | Overlappende subnetten                     | gepland               |
+| NV-005 | Onvolledige IP-configuratie                | deels (ontbrekend IP) |
+| NV-006 | Verwijzing naar onbekend VLAN              | gepland               |
+| NV-007 | Component zonder actieve verbinding        | basisversie aanwezig  |
+| NV-008 | Verbinding die DOWN staat                  | basisversie aanwezig  |
+ 
+## Voorbeeld
+ 
+Zolang de opdrachtregel-tool er nog niet is, gebruik je het model vanuit Python:
+ 
+```python
+from domain.component import Component
+from domain.network_project import NetworkProject
+from domain.verbinding import Verbinding
+from analysis.analysis_service import analyseer
+ 
+project = NetworkProject("kantoor")
+router = Component("router", "router-01", ip_adres="192.168.10.1", prefix=24)
+pc1 = Component("pc", "pc-01", ip_adres="192.168.10.20", prefix=24, gateway="192.168.10.1")
+pc2 = Component("pc", "pc-02", ip_adres="192.168.10.20", prefix=24, gateway="192.168.10.1")
+for component in (router, pc1, pc2):
+    project.toevoegen_component(component)
+project.toevoegen_verbinding(Verbinding(router, pc1))
+project.toevoegen_verbinding(Verbinding(router, pc2, "DOWN"))
+ 
+for melding in analyseer(project):
+    print(melding)
+```
+ 
+Uitvoer:
+ 
+```text
+pc-02 heeft geen actieve verbinding.
+Verbinding tussen router-01 en pc-02 is DOWN.
+pc-01 en pc-02 gebruiken hetzelfde IP-adres.
+```
+ 
+## Installeren en testen
+ 
+Vereist Python 3.10 of hoger. De kern gebruikt alleen de standaardbibliotheek; pytest is alleen nodig om te testen.
+ 
+```bash
+git clone https://github.com/AdelaideDevP86/Network_Simulator.git
+cd Network_Simulator
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install pytest
+python -m pytest
+```
+ 
+De instellingen voor pytest staan in `pyproject.toml`.
+ 
+## Opbouw
+ 
+```text
+domain/        Component, Vlan, Verbinding en NetworkProject: het model en zijn regels
+validators/    Controle van losse waarden (IPv4, prefix, VLAN, naam)
+analysis/      Controles op het ontwerp als geheel
+tests/         pytest-tests; hulp.py bevat hulpfuncties om snel een testproject te bouwen
+```
+ 
+Afhankelijkheden lopen in één richting: `analysis` gebruikt `domain`, en `domain` gebruikt alleen `validators`. Het
+model is bedoeld om alleen waarden terug te geven en het tonen over te laten aan de laag erboven, zodat het los te testen is en later bruikbaar
+is vanuit een opdrachtregel-tool of een grafische interface.
+ 
+## Op weg naar versie 1.0
+ 
+1. Domeinmodel repareren en volledig testen
+2. Een ontwerp inlezen uit JSON (`voorbeelden/kantoor.json`)
+3. Alle acht controles als `Melding` met regel-ID en ernst (FOUT of WAARSCHUWING)
+4. Opdrachtregel-tool: `python main.py voorbeelden/kantoor.json`
+5. Automatisch testen met GitHub Actions en release v1.0
+## Over dit project
+ 
+Persoonlijk portfolioproject naast mijn HBO-ICT-opleiding (software development). Ik combineer hiermee mijn
+achtergrond in elektrotechniek met softwareontwikkeling: de regels komen uit de praktijk van netwerkontwerp, de
+nadruk ligt op een helder domeinmodel, invoervalidatie en tests.
+ 
