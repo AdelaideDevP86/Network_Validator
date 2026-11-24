@@ -1,22 +1,17 @@
+import ipaddress
+
 # -------------------------
 # IPv4-validatie
 # -------------------------
+"""Invoervalidatie: controleert of één losse waarde geldig is."""
 def valideer_ipv4(adres):
-    delen = adres.split(".")
-
-    if len(delen) != 4:
-        raise ValueError("Ongeldig IP-adres,  format: xx.xx.xx.xx")
-
-    for deel in delen:
-        try:
-            getal = int(deel)
-        except ValueError:
-            raise ValueError("Ongeldig IP-adres, voer een getallen in, format: xx.xx.xx.xx.")
-
-        if getal < 0 or getal > 255:
-            raise ValueError("Ongeldig IP-adres, voer een getal tussen 0 en 255 per octet.")
-    else:
-        return True
+    if not isinstance(adres, str):
+        raise TypeError(f"IP-adres moet tekst zijn, niet {type(adres).__name__}.")
+    try:
+        ipaddress.IPv4Address(adres)
+    except ipaddress.AddressValueError:
+        raise ValueError(f'"{adres}" is geen geldig IPv4-adres.') from None
+    return True
 
 
 
