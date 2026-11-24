@@ -1,0 +1,13 @@
+[project]
+name = "network-validator"
+version = "0.1.0"
+description = "Controleert een netwerkontwerp op fouten voordat het wordt gebouwd"
+requires-python = ">=3.10"
+dependencies = []   # de kern gebruikt alleen de standaardbibliotheek
+
+[project.optional-dependencies]
+dev = ["pytest>=8"] # alleen nodig om te ontwikkelen en testen
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]   # zoek tests alleen in deze map
+pythonpath = [".", "tests"] 

@@ -23,7 +23,7 @@ systeem.toevoegen_verbinding(verbinding2)
 systeem.toevoegen_verbinding(verbinding3)
 
 
-print(systeem.status_verbinding())
+
 
 print(verbinding1)
 

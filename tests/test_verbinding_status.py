@@ -23,7 +23,7 @@ systeem.toevoegen_verbinding(verbinding2)
 systeem.toevoegen_verbinding(verbinding3)
 
 
-actief, inactief = systeem.status_verbinding()
+actief, inactief = systeem.scheid_actieve_en_inactieve_verbindingen()
 
 print("Actieve verbindingen:")
 for verbinding in actief:
